@@ -343,33 +343,114 @@ function group(array, keySelector, valueSelector) {
  *  For more examples see unit tests.
  */
 
+class Builder {
+  constructor(selectorType, selectorValue) {
+    this.selectors = [];
+    this.selectorsList = [
+      'element',
+      'id',
+      'class',
+      'attr',
+      'pseudoClass',
+      'pseudoElement',
+    ];
+    this[selectorType](selectorValue);
+  }
+
+  createSelector(type, value) {
+    if (
+      ['element', 'id', 'pseudoElement'].includes(type) &&
+      this.selectors.some((selector) => selector.type === type)
+    ) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    if (
+      this.selectorsList
+        .slice(this.selectorsList.indexOf(type) + 1)
+        .some((order) =>
+          this.selectors.map((selector) => selector.type).includes(order)
+        )
+    ) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.selectors.push({ type, value });
+  }
+
+  element(value) {
+    this.createSelector('element', value);
+    return this;
+  }
+
+  id(value) {
+    this.createSelector('id', `#${value}`);
+    return this;
+  }
+
+  class(value) {
+    this.createSelector('class', `.${value}`);
+    return this;
+  }
+
+  attr(value) {
+    this.createSelector('attr', `[${value}]`);
+    return this;
+  }
+
+  pseudoClass(value) {
+    this.createSelector('pseudoClass', `:${value}`);
+    return this;
+  }
+
+  pseudoElement(value) {
+    this.createSelector('pseudoElement', `::${value}`);
+    return this;
+  }
+
+  static combine(selector1, combinator, selector2) {
+    return {
+      value: `${selector1.stringify()} ${combinator} ${selector2.stringify()}`,
+      stringify() {
+        return this.value;
+      },
+    };
+  }
+
+  stringify() {
+    return this.selectors.map((selector) => selector.value).join('');
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return new Builder('element', value);
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return new Builder('id', value);
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return new Builder('class', value);
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return new Builder('attr', value);
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return new Builder('pseudoClass', value);
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return new Builder('pseudoElement', value);
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return Builder.combine(selector1, combinator, selector2);
   },
 };
 
